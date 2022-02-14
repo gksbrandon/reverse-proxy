@@ -29,8 +29,14 @@ func main() {
 			return
 		}
 		rw.WriteHeader(resp.StatusCode)
-		io.Copy(rw, resp.Body)
+		_, err = io.Copy(rw, resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
 	})
 
-	http.ListenAndServe(":9000", proxy)
+	err = http.ListenAndServe(":8080", proxy)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
