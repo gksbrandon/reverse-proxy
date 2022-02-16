@@ -1,0 +1,93 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.x
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run staticcheck
+        run: staticcheck ./...
+
+      - name: Run linters
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.29
+
+  test:
+    needs: lint
+    strategy:
+      matrix:
+        go-version: [1.17.x]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Install Go
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run tests
+        run: |
+          go test -v -race -vet=off -covermode=count ./...
+          go tool cover -func coverage.out
+
+      - name: Quality Gate - Test coverage shall be above threshold
+        env:
+            TESTCOVERAGE_THRESHOLD: 0
+        run: |
+              echo "Quality Gate: checking test coverage is above threshold ..."
+              echo "Threshold             : $TESTCOVERAGE_THRESHOLD %"
+              totalCoverage=`go tool cover -func=coverage.out | grep total | grep -Eo '[0-9]+\.[0-9]+'`
+              echo "Current test coverage : $totalCoverage %"
+              if (( $(echo "$totalCoverage $TESTCOVERAGE_THRESHOLD" | awk '{print ($1 > $2)}') )); then
+                  echo "OK"
+              else
+                  echo "Current test coverage is below threshold. Please add more unit tests or adjust threshold to a lower value."
+                  echo "Failed"
+                  exit 1
+              fi
+
+      - name: Build
+        run: go build -v ./...
+
+  build-and-publish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+   
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+
+    - name: Publish to Registry
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: gksbrandon/reverse-proxy
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
