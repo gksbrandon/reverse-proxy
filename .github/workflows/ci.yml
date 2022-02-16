@@ -24,12 +24,6 @@ jobs:
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
       - name: Run staticcheck
         run: staticcheck ./...
-
-  lint:
-    needs: vet
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
@@ -52,8 +46,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Run tests
         run: |
-          go test -v -race -vet=off -covermode=count ./...
-          go tool cover -func coverage.out
+            sudo go test ./... -coverprofile coverage.out -covermode count
+            sudo go tool cover -func coverage.out
       - name: Quality Gate - Test coverage shall be above threshold
         env:
             TESTCOVERAGE_THRESHOLD: 0
@@ -69,21 +63,20 @@ jobs:
                   echo "Failed"
                   exit 1
               fi
-      - name: Build
-        run: go build -v ./...
 
   build-and-publish:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-   
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      - uses: actions/checkout@v2
+      - name: Build
+        run: go build -v ./...
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
 
-    - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@master
-      with:
-        name: gksbrandon/reverse-proxy
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Publish to Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: gksbrandon/reverse-proxy
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
