@@ -1,11 +1,20 @@
-FROM golang:1.12.0-alpine3.9 AS builder
-RUN mkdir /app
-ADD . /app
-WORKDIR /app
-RUN go build -o main .
+## Build
+FROM golang:1.17.7-alpine3.15 AS builder
 
-FROM alpine
 WORKDIR /app
-COPY --from=builder /app/ /app/
+
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+
+COPY *.go ./
+RUN go build -o /reverse-proxy
+
+## Deploy
+FROM alpine
+WORKDIR /
+COPY --from=builder /reverse-proxy /reverse-proxy
+
 EXPOSE 8080
-CMD ["/app/main"]
+
+CMD ["/reverse-proxy"]

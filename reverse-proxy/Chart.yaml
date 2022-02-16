@@ -1,6 +1,0 @@
-apiVersion: v2
-name: reverse-proxy
-description: A very simple reverse-proxy application to coinbase prices API
-type: application
-version: 1.0.0
-appVersion: "1.0.0"
