@@ -45,6 +45,7 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+// JSONError is a helper function to return a JSON formatted error to the user
 func JSONError(rw http.ResponseWriter, err interface{}, code int) {
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 	rw.Header().Set("X-Content-Type-Options", "nosniff")
