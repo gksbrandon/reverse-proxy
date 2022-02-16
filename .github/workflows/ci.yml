@@ -7,167 +7,167 @@ on:
     branches: [main]
 
 jobs:
-  vet:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src
-    steps:
-      - name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17.x
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Verify dependencies
-        run: go mod verify
-      - name: Run go vet
-        run: go vet ./...
-      - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
-      - name: Run staticcheck
-        run: staticcheck ./...
+  # vet:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: src
+  #   steps:
+  #     - name: Install Go
+  #       uses: actions/setup-go@v2
+  #       with:
+  #         go-version: 1.17.x
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: Verify dependencies
+  #       run: go mod verify
+  #     - name: Run go vet
+  #       run: go vet ./...
+  #     - name: Install staticcheck
+  #       run: go install honnef.co/go/tools/cmd/staticcheck@latest
+  #     - name: Run staticcheck
+  #       run: staticcheck ./...
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
-        with:
-          version: v1.29
-          working-directory: src
+  # lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: golangci-lint
+  #       uses: golangci/golangci-lint-action@v2
+  #       with:
+  #         version: v1.29
+  #         working-directory: src
 
-  test:
-    needs: [vet, lint]
-    strategy:
-      matrix:
-        go-version: [1.17.x, 1.16.x]
-        platform: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.platform }}
-    defaults:
-      run:
-        working-directory: src
-    steps:
-      - name: Install Go
-        if: success()
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go-version }}
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Run tests
-        run: |
-            sudo go test ./... -coverprofile coverage.out -covermode count
-            sudo go tool cover -func coverage.out
-      - name: Quality Gate - Test coverage shall be above threshold
-        env:
-            TESTCOVERAGE_THRESHOLD: 70
-        run: |
-              echo "Quality Gate: checking test coverage is above threshold ..."
-              echo "Threshold             : $TESTCOVERAGE_THRESHOLD %"
-              totalCoverage=`go tool cover -func=coverage.out | grep total | grep -Eo '[0-9]+\.[0-9]+'`
-              echo "Current test coverage : $totalCoverage %"
-              if (( $(echo "$totalCoverage $TESTCOVERAGE_THRESHOLD" | awk '{print ($1 > $2)}') )); then
-                  echo "OK"
-              else
-                  echo "Current test coverage is below threshold. Please add more unit tests or adjust threshold to a lower value."
-                  echo "Failed"
-                  exit 1
-              fi
+  # test:
+  #   needs: [vet, lint]
+  #   strategy:
+  #     matrix:
+  #       go-version: [1.17.x, 1.16.x]
+  #       platform: [ubuntu-latest, macos-latest]
+  #   runs-on: ${{ matrix.platform }}
+  #   defaults:
+  #     run:
+  #       working-directory: src
+  #   steps:
+  #     - name: Install Go
+  #       if: success()
+  #       uses: actions/setup-go@v2
+  #       with:
+  #         go-version: ${{ matrix.go-version }}
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: Run tests
+  #       run: |
+  #           sudo go test ./... -coverprofile coverage.out -covermode count
+  #           sudo go tool cover -func coverage.out
+  #     - name: Quality Gate - Test coverage shall be above threshold
+  #       env:
+  #           TESTCOVERAGE_THRESHOLD: 70
+  #       run: |
+  #             echo "Quality Gate: checking test coverage is above threshold ..."
+  #             echo "Threshold             : $TESTCOVERAGE_THRESHOLD %"
+  #             totalCoverage=`go tool cover -func=coverage.out | grep total | grep -Eo '[0-9]+\.[0-9]+'`
+  #             echo "Current test coverage : $totalCoverage %"
+  #             if (( $(echo "$totalCoverage $TESTCOVERAGE_THRESHOLD" | awk '{print ($1 > $2)}') )); then
+  #                 echo "OK"
+  #             else
+  #                 echo "Current test coverage is below threshold. Please add more unit tests or adjust threshold to a lower value."
+  #                 echo "Failed"
+  #                 exit 1
+  #             fi
 
-  docker-build-and-publish:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build
-        working-directory: src
-        run: go build -v ./...
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+  # docker-build-and-publish:
+  #   needs: test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Build
+  #       working-directory: src
+  #       run: go build -v ./...
+  #     - name: Build the Docker image
+  #       run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
 
-      - name: Publish to Registry
-        uses: elgohr/Publish-Docker-Github-Action@master
-        with:
-          name: gksbrandon/reverse-proxy
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+  #     - name: Publish to Registry
+  #       uses: elgohr/Publish-Docker-Github-Action@master
+  #       with:
+  #         name: gksbrandon/reverse-proxy
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
 
-  helm-lint-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+  # helm-lint-test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v1
-        with:
-          version: v3.4.1
+  #     - name: Set up Helm
+  #       uses: azure/setup-helm@v1
+  #       with:
+  #         version: v3.4.1
 
-      # Python is required because `ct lint` runs Yamale (https://github.com/23andMe/Yamale) and
-      # yamllint (https://github.com/adrienverge/yamllint) which require Python
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
+  #     # Python is required because `ct lint` runs Yamale (https://github.com/23andMe/Yamale) and
+  #     # yamllint (https://github.com/adrienverge/yamllint) which require Python
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.7
 
-      - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.0.1
-        with:
-          version: v3.3.0
+  #     - name: Set up chart-testing
+  #       uses: helm/chart-testing-action@v2.0.1
+  #       with:
+  #         version: v3.3.0
 
-      - name: Run chart-testing (list-changed)
-        id: list-changed
-        run: |
-          changed=$(ct list-changed --config ct.yaml)
-          if [[ -n "$changed" ]]; then
-            echo "::set-output name=changed::true"
-          fi
-      - name: Run chart-testing (lint)
-        run: ct lint --config ct.yaml
+  #     - name: Run chart-testing (list-changed)
+  #       id: list-changed
+  #       run: |
+  #         changed=$(ct list-changed --config ct.yaml)
+  #         if [[ -n "$changed" ]]; then
+  #           echo "::set-output name=changed::true"
+  #         fi
+  #     - name: Run chart-testing (lint)
+  #       run: ct lint --config ct.yaml
 
-      - name: Create kind cluster
-        uses: helm/kind-action@v1.1.0
-        if: steps.list-changed.outputs.changed == 'true'
+  #     - name: Create kind cluster
+  #       uses: helm/kind-action@v1.1.0
+  #       if: steps.list-changed.outputs.changed == 'true'
 
-      - name: Run chart-testing (install)
-        run: ct install --config ct.yaml
+  #     - name: Run chart-testing (install)
+  #       run: ct install --config ct.yaml
 
-  helm-release:
-    needs: helm-lint-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+  # helm-release:
+  #   needs: helm-lint-test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+  #     - name: Configure Git
+  #       run: |
+  #         git config user.name "$GITHUB_ACTOR"
+  #         git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Install Helm
-        uses: azure/setup-helm@v1
-        with:
-          version: v3.4.1
+  #     - name: Install Helm
+  #       uses: azure/setup-helm@v1
+  #       with:
+  #         version: v3.4.1
 
-      - name: Add dependency chart repos
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.1.0
-        with:
-          charts_dir: charts
-          config: cr.yaml
-        env:
-          CR_TOKEN: "${{ secrets.CR_TOKEN }}"
+  #     - name: Add dependency chart repos
+  #       run: |
+  #         helm repo add bitnami https://charts.bitnami.com/bitnami
+  #     - name: Run chart-releaser
+  #       uses: helm/chart-releaser-action@v1.1.0
+  #       with:
+  #         charts_dir: charts
+  #         config: cr.yaml
+  #       env:
+  #         CR_TOKEN: "${{ secrets.CR_TOKEN }}"
 
   terraform-deploy:
-    needs: [helm-release, docker-build-and-publish]
+    # needs: [helm-release, docker-build-and-publish]
     runs-on: ubuntu-latest
     steps:
 
