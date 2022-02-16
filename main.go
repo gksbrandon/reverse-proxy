@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 
 	"log"
 	"net/http"
@@ -24,6 +25,11 @@ type DataResponse struct {
 		Currency string `json:"currency"`
 		Amount   string `json:"amount"`
 	} `json:"data"`
+}
+
+// ErrorResponse is the error response returned to user for a bad request
+type ErrorResponse struct {
+	Error string
 }
 
 type application struct {
@@ -62,7 +68,7 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	currency := vars["currency"]
 	acceptedCurrencies := []string{"EUR", "GBP", "USD", "JPY"}
 	if ok := contains(acceptedCurrencies, currency); !ok {
-		JSONError(rw, err, http.StatusBadRequest)
+		JSONError(rw, ErrorResponse{`Currency not currently supported, please choose between ["EUR", "GBP", "USD", "JPY"]`}, http.StatusBadRequest)
 		return
 	}
 
@@ -85,7 +91,7 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	defer resp.Body.Close()
 
 	// Read body of response into bytes
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		JSONError(rw, err, http.StatusInternalServerError)
 		return
