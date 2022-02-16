@@ -3,12 +3,12 @@ entries:
   reverse-proxy:
   - apiVersion: v2
     appVersion: 0.0.1
-    created: "2022-02-16T22:19:03.570304+08:00"
+    created: "2022-02-16T22:35:58.930965+08:00"
     description: A Helm chart to deploy a reverse-proxy app to Coinbase Spot Price
-    digest: 4d40fae578062dd968004cf36e6b86c9106239bd337f2b7fa164bf2cf3d99c83
+    digest: 049e4adde4820c0bb36802749c08d75cf324e1a0486858d7ebcf94dc6dfc479f
     name: reverse-proxy
     type: application
     urls:
     - reverse-proxy-0.1.0.tgz
     version: 0.1.0
-generated: "2022-02-16T22:19:03.569631+08:00"
+generated: "2022-02-16T22:35:58.930261+08:00"

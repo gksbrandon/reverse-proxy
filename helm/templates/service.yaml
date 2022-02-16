@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: reverse-proxy-svc
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
     - port: 8080
       protocol: TCP
