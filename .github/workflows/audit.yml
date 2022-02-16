@@ -1,4 +1,4 @@
-name: Audit
+name: Build, Test & Publish
 
 on:
   push:
@@ -7,41 +7,108 @@ on:
     branches: [main]
 
 jobs:
-  audit:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.x
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run linters
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.29
+
+  test:
     strategy:
       matrix:
-        go-version: [1.17.x, 1.16.x]
+        go-version: [1.17.x]
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
-
     steps:
-    - uses: actions/checkout@v2
+      - name: Install Go
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run tests
+        run: go test -v -covermode=count
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ matrix.go-version }}
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.x
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Calc coverage
+        run: |
+          go test -v -covermode=count -coverprofile=coverage.out
+      - name: Convert coverage.out to coverage.lcov
+        uses: jandelgado/gcov2lcov-action@v1.0.6
+      - name: Coveralls
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.github_token }}
+          path-to-lcov: coverage.lcov
 
-    - name: Verify dependencies
-      run: go mod verify
+  # audit:
+  #   strategy:
+  #     matrix:
+  #       go-version: [1.17.x, 1.16.x]
+  #       platform: [ubuntu-latest, macos-latest, windows-latest]
+  #   runs-on: ${{ matrix.platform }}
 
-    - name: Build
-      run: go build -v ./...
+  #   steps:
+  #   - uses: actions/checkout@v2
 
-    - name: Run go vet
-      run: go vet ./...
+  #   - name: Set up Go
+  #     uses: actions/setup-go@v2
+  #     with:
+  #       go-version: ${{ matrix.go-version }}
 
-    - name: Install staticcheck
-      run: go install honnef.co/go/tools/cmd/staticcheck@latest
+  #   - name: Verify dependencies
+  #     run: go mod verify
 
-    - name: Run staticcheck
-      run: staticcheck ./...
+  #   - name: Build
+  #     run: go build -v ./...
 
-    - name: Install golint
-      run: go install golang.org/x/lint/golint@latest
+  #   - name: Run go vet
+  #     run: go vet ./...
 
-    - name: Run golint
-      run: golint ./...
+  #   - name: Install staticcheck
+  #     run: go install honnef.co/go/tools/cmd/staticcheck@latest
 
-    - name: Run tests
-      run: go test -race -vet=off ./...
+  #   - name: Run staticcheck
+  #     run: staticcheck ./...
+
+  #   - name: Install golint
+  #     run: go install golang.org/x/lint/golint@latest
+
+  #   - name: Run golint
+  #     run: golint ./...
+
+  #   - name: Run tests
+  #     run: go test -race -vet=off ./...
+
+  # build-and-publish:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   
+  #   - name: Build the Docker image
+  #     run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+
+  #   - name: Publish to Registry
+  #     uses: elgohr/Publish-Docker-Github-Action@master
+  #     with:
+  #       name: gksbrandon/reverse-proxy
+  #       username: ${{ secrets.DOCKER_USERNAME }}
+  #       password: ${{ secrets.DOCKER_PASSWORD }}
