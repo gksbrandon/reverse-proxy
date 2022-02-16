@@ -169,24 +169,35 @@ jobs:
   terraform-deploy:
     # needs: [helm-release, docker-build-and-publish]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: terraform
     steps:
-    - uses: actions/checkout@v2
-    - uses: hashicorp/setup-terraform@v1
 
-    - name: Terraform fmt
-      run: terraform fmt -check
+    - name: Checkout Repo
+      uses: actions/checkout@v1
 
     - name: Terraform Init
-      run: terraform init
+      uses: hashicorp/terraform-github-actions/init@v0.4.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.CR_TOKEN }}
+        TF_ACTION_WORKING_DIR: 'terraform'
+        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Terraform Validate
-      run: terraform validate -no-color
-
-    - name: Terraform Plan
-      run: terraform plan -no-color
+      uses: hashicorp/terraform-github-actions/validate@v0.3.7
 
     - name: Terraform Apply
-      run: terraform apply -no-color
+      uses: hashicorp/terraform-github-actions/apply@v0.4.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.CR_TOKEN }}
+        TF_ACTION_WORKING_DIR: 'terraform'
+        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Sync S3
+      uses: jakejarvis/s3-sync-action@master
+      env:
+        SOURCE_DIR: './src'
+        AWS_REGION: 'us-east-1'
+        AWS_S3_BUCKET: '[BUCKET_NAME_HERE]'
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
