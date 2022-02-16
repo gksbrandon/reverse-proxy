@@ -43,7 +43,10 @@ func JSONError(rw http.ResponseWriter, err interface{}, code int) {
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 	rw.Header().Set("X-Content-Type-Options", "nosniff")
 	rw.WriteHeader(code)
-	json.NewEncoder(rw).Encode(err)
+	e := json.NewEncoder(rw).Encode(err)
+	if e != nil {
+		log.Fatal(e)
+	}
 }
 
 func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request) {
@@ -121,7 +124,10 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 func (*application) healthCheckHandler(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 	rw.Header().Set("Content-Type", "application/json")
-	io.WriteString(rw, `{"alive": true}`)
+	_, err := io.WriteString(rw, `{"alive": true}`)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (a *application) handler() *mux.Router {
