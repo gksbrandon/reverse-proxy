@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"log"
@@ -18,16 +17,13 @@ const (
 	defaultAPIURL = "https://api.coinbase.com/v2/prices/spot"
 )
 
+// DataResponse is the response received from the external API
 type DataResponse struct {
 	Data struct {
 		Base     string `json:"base"`
 		Currency string `json:"currency"`
 		Amount   string `json:"amount"`
 	} `json:"data"`
-}
-
-type ErrorResponse struct {
-	Error string `json:"error"`
 }
 
 type application struct {
@@ -43,12 +39,18 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+func JSONError(rw http.ResponseWriter, err interface{}, code int) {
+	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+	rw.Header().Set("X-Content-Type-Options", "nosniff")
+	rw.WriteHeader(code)
+	json.NewEncoder(rw).Encode(err)
+}
+
 func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request) {
 	// Parse apiURL
 	apiURL, err := url.Parse(a.apiURL)
 	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(rw).Encode(ErrorResponse{fmt.Sprintf("Invalid URL: %v, Error: %v", a.apiURL, err)})
+		JSONError(rw, err, http.StatusBadRequest)
 		return
 	}
 
@@ -57,8 +59,7 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	currency := vars["currency"]
 	acceptedCurrencies := []string{"EUR", "GBP", "USD", "JPY"}
 	if ok := contains(acceptedCurrencies, currency); !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(rw).Encode(ErrorResponse{`Currency not accepted, please choose between "EUR, GBP, USD, JPY"`})
+		JSONError(rw, err, http.StatusBadRequest)
 		return
 	}
 
@@ -75,8 +76,7 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	// Make request
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(rw, err)
+		JSONError(rw, err, http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
@@ -84,8 +84,7 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	// Read body of response into bytes
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(rw, err)
+		JSONError(rw, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -96,9 +95,7 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	case "gzip":
 		reader, err = gzip.NewReader(buf)
 		if err != nil {
-			fmt.Println("test")
-			rw.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(rw, err)
+			JSONError(rw, err, http.StatusInternalServerError)
 			return
 		}
 	default:
@@ -108,8 +105,7 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	// Decode json from the io.Reader
 	var response DataResponse
 	if err := json.NewDecoder(reader).Decode(&response); err != nil && err != io.EOF {
-		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(rw, err)
+		JSONError(rw, err, http.StatusInternalServerError)
 		return
 	}
 
