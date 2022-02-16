@@ -10,31 +10,8 @@ provider "helm" {
   }
 }
 
-# resource "helm_release" "jenkins" {
-#   name       = "jenkins"
-#   repository = "https://charts.jenkins.io"
-#   chart      = "jenkins"
-
-#   values = [
-#     "${file("jenkins-values.yaml")}"
-#   ]
-
-#   set_sensitive {
-#     name  = "controller.adminUser"
-#     value = ""
-#   }
-#   set_sensitive {
-#     name = "controller.adminPassword"
-#     value = ""
-#   }
-#   set_sensitive {
-#     name = "adminPassword"
-#     value = ""
-#   }
-
-resource "helm_release" "hello" {
-  name       = "hello"
-  repository = "https://www.kleinloog.ch/hello-helm/"
-  chart      = "hello"
+resource "helm_release" "reverse-proxy" {
+  name       = "reverse-proxy"
+  repository = "https://gksbrandon.github.io/reverse-proxy/charts"
+  chart      = "reverse-proxy"
 }
-
