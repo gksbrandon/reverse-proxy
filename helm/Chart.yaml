@@ -1,0 +1,6 @@
+apiVersion: v2
+name: reverse-proxy
+description: A Helm chart to deploy a reverse-proxy app to Coinbase Spot Price
+type: application
+version: 0.1.0
+appVersion: "0.0.1"
