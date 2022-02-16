@@ -1,10 +1,16 @@
 terraform {
-  required_version = ">=0.14.9"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
+  }
 
-  backend "s3" {
-    bucket = "reverse-proxy-terraform"
-    key    = "terraform.tfstate"
-    region = "us-east-1"
+  cloud {
+    organization = "gksbrandon"
+
+    workspaces {
+      name = "reverse-proxy"
+    }
   }
 }
 
