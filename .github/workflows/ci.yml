@@ -149,6 +149,7 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
@@ -165,9 +166,8 @@ jobs:
         env:
           CR_TOKEN: "${{ secrets.CR_TOKEN }}"
 
-  tf_fmt:
+  terraform-deploy:
     needs: [helm-release, docker-build-and-publish]
-    name: Deploy Site
     runs-on: ubuntu-latest
     steps:
 
