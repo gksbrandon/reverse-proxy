@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"expvar"
 	"io"
 	"io/ioutil"
 
@@ -99,24 +100,22 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 	}
 
 	// Check that server actually sent compressed data
-	buf := bytes.NewBuffer(bodyBytes)
 	var reader io.ReadCloser
+	var response DataResponse
 	switch resp.Header.Get("Content-Encoding") {
 	case "gzip":
+		buf := bytes.NewBuffer(bodyBytes)
 		reader, err = gzip.NewReader(buf)
 		if err != nil {
 			JSONError(rw, err, http.StatusInternalServerError)
 			return
 		}
+		if err := json.NewDecoder(reader).Decode(&response); err != nil && err != io.EOF {
+			JSONError(rw, err, http.StatusInternalServerError)
+			return
+		}
 	default:
-		reader = resp.Body
-	}
-
-	// Decode json from the io.Reader
-	var response DataResponse
-	if err := json.NewDecoder(reader).Decode(&response); err != nil && err != io.EOF {
-		JSONError(rw, err, http.StatusInternalServerError)
-		return
+		json.Unmarshal(bodyBytes, &response)
 	}
 
 	// Write response
@@ -139,6 +138,7 @@ func (*application) healthCheckHandler(rw http.ResponseWriter, req *http.Request
 
 func (a *application) handler() *mux.Router {
 	r := mux.NewRouter()
+	r.HandleFunc("/metrics", expvar.Handler().ServeHTTP).Methods("GET")
 	r.HandleFunc("/health", http.HandlerFunc(a.healthCheckHandler)).Methods("GET")
 	r.HandleFunc("/{currency}", http.HandlerFunc(a.spotPriceHandler)).Methods("GET")
 	return r

@@ -72,7 +72,6 @@ func TestSpotPriceHandler(t *testing.T) {
 
 		handler := http.HandlerFunc(a.spotPriceHandler)
 		handler.ServeHTTP(rec, req)
-
 		// Check the status code is what we expect.
 		if status := rec.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -81,6 +80,9 @@ func TestSpotPriceHandler(t *testing.T) {
 		var response DataResponse
 		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil && err != io.EOF {
 			t.Errorf("Expected json decoding success; got %v", err)
+		}
+		if response.Data.Currency != "USD" {
+			t.Errorf("Expected USD; got %v", response.Data.Currency)
 		}
 	})
 
@@ -116,9 +118,12 @@ func TestSpotPriceHandler(t *testing.T) {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
 		}
 
-		var response DataResponse
+		var response ErrorResponse
 		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil && err != io.EOF {
 			t.Errorf("Expected json decoding success; got %v", err)
+		}
+		if response.Error != `Currency not currently supported, please choose between ["EUR", "GBP", "USD", "JPY"]` {
+			t.Errorf("Expected USD; got %v", response.Error)
 		}
 	})
 
@@ -149,15 +154,9 @@ func TestSpotPriceHandler(t *testing.T) {
 		handler := http.HandlerFunc(a.spotPriceHandler)
 		handler.ServeHTTP(rec, req)
 
-		fmt.Println()
 		// Check the status code is what we expect.
 		if status := rec.Code; status != http.StatusBadRequest {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
-
-		var response DataResponse
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil && err != io.EOF {
-			t.Errorf("Expected json decoding success; got %v", err)
 		}
 	})
 }
