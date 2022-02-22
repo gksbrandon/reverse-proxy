@@ -115,7 +115,11 @@ func (a *application) spotPriceHandler(rw http.ResponseWriter, req *http.Request
 			return
 		}
 	default:
-		json.Unmarshal(bodyBytes, &response)
+		err = json.Unmarshal(bodyBytes, &response)
+		if err != nil {
+			JSONError(rw, err, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Write response
